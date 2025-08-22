@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+Python/autogis-site.readthedocs.io/data/Helsinki.csv
+Python/autogis-site.readthedocs.io/data/Lappeenranta.csv
+Python/autogis-site.readthedocs.io/data/Oulu.csv
+Python/autogis-site.readthedocs.io/data/Porvoo.csv
+Python/autogis-site.readthedocs.io/data/Rovaniemi.csv
+Python/autogis-site.readthedocs.io/data/Turku.csv
