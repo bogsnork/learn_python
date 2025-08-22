@@ -133,3 +133,5 @@ Python/autogis-site.readthedocs.io/data/Oulu.csv
 Python/autogis-site.readthedocs.io/data/Porvoo.csv
 Python/autogis-site.readthedocs.io/data/Rovaniemi.csv
 Python/autogis-site.readthedocs.io/data/Turku.csv
+Python/holocene_climate/data/holocene_reconstruction.nc
+Python/holocene_climate/data/holocene_reconstruction.nc.aux.xml
