@@ -135,3 +135,7 @@ Python/autogis-site.readthedocs.io/data/Rovaniemi.csv
 Python/autogis-site.readthedocs.io/data/Turku.csv
 Python/holocene_climate/data/holocene_reconstruction.nc
 Python/holocene_climate/data/holocene_reconstruction.nc.aux.xml
+Python/holocene_climate/data/CHELSA_TraCE21k_pr_12_9_V1.0.tif
+Python/holocene_climate/data/trace.01-36.22000BP.cam2.PRECL.22000BP_decavg_400BCE.nc
+Python/holocene_climate/data/trace.01-36.22000BP.cam2.PRECL.22000BP_decavgDJF_400BCE.nc
+Python/holocene_climate/data/trace.01-36.22000BP.cam2.PRECL.22000BP_decavgJJA_400BCE.nc
