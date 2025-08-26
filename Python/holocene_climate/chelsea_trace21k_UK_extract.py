@@ -7,40 +7,54 @@ from rasterio.enums import Resampling
 from rasterio.shutil import copy as rio_copy
 from rasterio.io import MemoryFile
 import numpy as np
-import requests
-from bs4 import BeautifulSoup
+import csv
 
-# Set PROJ_LIB if not already set
-if "PROJ_LIB" not in os.environ:
-    try:
-        import pyproj
-        os.environ["PROJ_LIB"] = pyproj.datadir.get_data_dir()
-    except ImportError:
-        pass
+# Set PROJ_LIB (seems to be a recurring issue on some systems)
+try:
+    import pyproj
+    os.environ["PROJ_LIB"] = pyproj.datadir.get_data_dir()
+except ImportError:
+    pass
 
-def get_https_urls_from_envicloud(variable="pr", limit=5):
+# Variables that have a 'month' component in their filename
+MONTHLY_VARS = {"pr", "tasmax", "tasmin"}
+
+def filter_urls_from_csv(csv_rows, variable=None, month_range=None, timeID_range=None):
     """
-    Scrape the EnviCloud directory listing for CHELSA TraCE21k precipitation GeoTIFFs.
-    Returns a list of HTTPS URLs.
+    Filter CSV rows by variable, month, and timeID ranges.
+    Returns a list of tuples: (url, var, month, timeID)
     """
-    base_url = f"https://os.zhdk.cloud.switch.ch/chelsav1/chelsa_trace/{variable}/"
-    response = requests.get(base_url)
-    soup = BeautifulSoup(response.text, features="xml")
-    urls = []
-    for link in soup.find_all("a"):
-        href = link.get("href")
-        if href and href.endswith(".tif"):
-            urls.append(base_url + href)
-            if limit and len(urls) >= limit:
-                break
-    return urls
+    filtered = []
+    for row in csv_rows:
+        var = row['variable']
+        url = row['url']
+        # For monthly variables, filter by month and timeID
+        if var in MONTHLY_VARS:
+            month = int(row['month'])
+            timeID = int(row['timeID'])
+            if variable and var != variable:
+                continue
+            if month_range and not (month_range[0] <= month <= month_range[1]):
+                continue
+            if timeID_range and not (timeID_range[0] <= timeID <= timeID_range[1]):
+                continue
+            filtered.append((url, var, month, timeID))
+        else:
+            # For non-monthly variables, only filter by variable and timeID
+            timeID = int(row['timeID'])
+            if variable and var != variable:
+                continue
+            if timeID_range and not (timeID_range[0] <= timeID <= timeID_range[1]):
+                continue
+            filtered.append((url, var, None, timeID))
+    return filtered
 
-def extract_and_stack_geotiffs(urls, bbox, output_path):
+def extract_and_stack_geotiffs(urls_info, bbox, output_path):
     bands = []
     band_names = []
     out_meta = None
 
-    for url in urls:
+    for url, var, month, timeID in urls_info:
         print(f"Processing {url}")
         with rasterio.open(url) as src:
             vrt_options = {
@@ -60,11 +74,11 @@ def extract_and_stack_geotiffs(urls, bbox, output_path):
                         "crs": "EPSG:4326"
                     })
                 bands.append(data)
-                # Extract mXX_cYY from filename
-                parts = os.path.basename(url).split("_")
-                m = parts[3]
-                c = parts[4]
-                band_names.append(f"c{c}_m{m}")
+                # Band name logic
+                if var in MONTHLY_VARS:
+                    band_names.append(f"{var}_m{month}_c{timeID}")
+                else:
+                    band_names.append(f"{var}_c{timeID}")
 
     if not bands:
         print("No bands to write.")
@@ -86,22 +100,44 @@ def extract_and_stack_geotiffs(urls, bbox, output_path):
                 dst.write(band, idx)
                 dst.set_band_description(idx, band_names[idx-1])
         rio_copy(memfile.name, output_path, driver='COG', compress='deflate', blocksize=512, overview_resampling='nearest')
-
+  
     print(f"Saved {output_path}")
 
 if __name__ == "__main__":
-    # Set the variable for the data type (e.g., "pr" for precipitation)
-    VARIABLE = "pr"
-    # Set the maximum number of files to process
-    FILE_PROCESS_LIMIT = 10  # Change this value as needed
+    # ----------------- USER-EDITABLE PARAMETERS -----------------
+    # Path to the CSV file containing URLs and parameters
+    URLS_CSV = "Python/holocene_climate/data/urls_to_query_bio12.csv"
 
-    # Scrape HTTPS URLs from EnviCloud (get all, then limit for processing)
-    all_urls = get_https_urls_from_envicloud(variable=VARIABLE)
-    print(f"Found {len(all_urls)} GeoTIFF URLs on EnviCloud.")
+    # Set the variable you want to extract (e.g. "pr", "tasmax", "bio18", "dem", etc.)
+    VARIABLE = "bio12"  # or None for all variables
 
-    # Limit the number of files to process
-    urls = all_urls[:FILE_PROCESS_LIMIT]
-    print(f"Processing {len(urls)} GeoTIFF URLs.")
+    # Set the month range if applicable (for monthly variables only)
+    # Example: (1, 12) for all months, (6, 8) for June to August, or None for all
+    MONTH_RANGE = (1, 2) if VARIABLE in MONTHLY_VARS else None  # or None for all
+
+    # Set the timeID range (for all variables)
+    # Example: (-200, 20) for all, or (19, 20) for a small test
+    TIMEID_RANGE = None#(19, 20)  # or None for all
+    # ------------------------------------------------------------
+
+    # Read URLs and parameters from CSV
+    with open(URLS_CSV, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        csv_rows = [row for row in reader]
+
+    # Print the first 10 lines of the CSV
+    print("First 10 rows from CSV:")
+    for row in csv_rows[:10]:
+        print(row)
+
+    # Filter URLs
+    urls_info = filter_urls_from_csv(
+        csv_rows,
+        variable=VARIABLE,
+        month_range=MONTH_RANGE,
+        timeID_range=TIMEID_RANGE
+    )
+    print(f"Processing {len(urls_info)} GeoTIFF URLs after filtering.")
 
     # Bounding box for Britain and Ireland (WGS84)
     MIN_LON, MIN_LAT, MAX_LON, MAX_LAT = -11.0, 49.5, 2.1, 61.0
@@ -110,4 +146,4 @@ if __name__ == "__main__":
     now = datetime.datetime.now().strftime("%Y%m%dT%H%M%S")
     output_path = f"Python/holocene_climate/data/CHELSA_TraCE21k_UK_V1.0_{VARIABLE}_{now}.tif"
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    extract_and_stack_geotiffs(urls, BBOX, output_path)
+    extract_and_stack_geotiffs(urls_info, BBOX, output_path)
