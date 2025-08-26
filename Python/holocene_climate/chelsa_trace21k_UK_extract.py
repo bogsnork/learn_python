@@ -94,18 +94,18 @@ def extract_and_stack_geotiffs(urls_info, bbox, output_path, parallel=True):
     })
 
 
-with rasterio.open(output_path, 'w', **profile) as dst:
-    for idx, band in enumerate(tqdm(bands, desc="Writing bands to GeoTIFF", unit="band"), start=1):
-        dst.write(band, idx)
-        dst.set_band_description(idx, band_names[idx-1])
+    with rasterio.open(output_path, 'w', **profile) as dst:
+        for idx, band in enumerate(tqdm(bands, desc="Writing bands to GeoTIFF", unit="band"), start=1):
+            dst.write(band, idx)
+            dst.set_band_description(idx, band_names[idx-1])
 
     print(f"Saved {output_path}")
 
 if __name__ == "__main__":
     # ----------------- USER-EDITABLE PARAMETERS -----------------
-    URLS_CSV = "urls_to_query_bio12.csv"
+    URLS_CSV = "Python/holocene_climate/data/urls_to_query_tasmax.csv"
     # Set the variable you want to extract (e.g. "pr", "tasmax", "bio18", "dem", etc.)
-    VARIABLE = "bio12"
+    VARIABLE = "tasmax"
     # Set the month range if applicable (for monthly variables only)
     # Example: (1, 12) for all months, (6, 8) for June to August, or None for all
     MONTH_RANGE = None
@@ -139,5 +139,6 @@ if __name__ == "__main__":
     BBOX = (MIN_LON, MIN_LAT, MAX_LON, MAX_LAT)
 
     now = datetime.datetime.now().strftime("%Y%m%dT%H%M%S")
-    output_path = f"CHELSA_TraCE21k_UK_V1.0_{VARIABLE}_{now}.tif"
+    output_path = f"Python/holocene_climate/data/CHELSA_TraCE21k_UK_V1.0_{VARIABLE}_{now}.tif"
     extract_and_stack_geotiffs(urls_info, BBOX, output_path, parallel=PARALLEL)
+
