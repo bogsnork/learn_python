@@ -103,9 +103,9 @@ def extract_and_stack_geotiffs(urls_info, bbox, output_path, parallel=True):
 
 if __name__ == "__main__":
     # ----------------- USER-EDITABLE PARAMETERS -----------------
-    URLS_CSV = "Python/holocene_climate/data/urls_to_query_tasmax.csv"
+    URLS_CSV = "Python/holocene_climate/data/urls_to_query_bio06.csv"
     # Set the variable you want to extract (e.g. "pr", "tasmax", "bio18", "dem", etc.)
-    VARIABLE = "tasmax"
+    VARIABLE = "bio06"
     # Set the month range if applicable (for monthly variables only)
     # Example: (1, 12) for all months, (6, 8) for June to August, or None for all
     MONTH_RANGE = None
