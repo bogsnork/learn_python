@@ -1,15 +1,14 @@
+from concurrent.futures import ThreadPoolExecutor
 import os
 import datetime
 import rasterio
 from rasterio.vrt import WarpedVRT
 from rasterio.windows import from_bounds
 from rasterio.enums import Resampling
-from rasterio.shutil import copy as rio_copy
-from rasterio.io import MemoryFile
-import numpy as np
 import csv
+from tqdm import tqdm
 
-# Set PROJ_LIB (seems to be a recurring issue on some systems)
+# Set PROJ_LIB (for systems where it's needed)
 try:
     import pyproj
     os.environ["PROJ_LIB"] = pyproj.datadir.get_data_dir()
@@ -30,11 +29,11 @@ def filter_urls_from_csv(csv_rows, variable=None, month_range=None, timeID_range
         url = row['url']
         # For monthly variables, filter by month and timeID
         if var in MONTHLY_VARS:
-            month = int(row['month'])
+            month = int(row['month']) if row['month'] else None
             timeID = int(row['timeID'])
             if variable and var != variable:
                 continue
-            if month_range and not (month_range[0] <= month <= month_range[1]):
+            if month_range and (month is None or not (month_range[0] <= month <= month_range[1])):
                 continue
             if timeID_range and not (timeID_range[0] <= timeID <= timeID_range[1]):
                 continue
@@ -49,41 +48,41 @@ def filter_urls_from_csv(csv_rows, variable=None, month_range=None, timeID_range
             filtered.append((url, var, None, timeID))
     return filtered
 
-def extract_and_stack_geotiffs(urls_info, bbox, output_path):
-    bands = []
-    band_names = []
-    out_meta = None
+def process_single_geotiff(info, bbox):
+    url, var, month, timeID = info
+    print(f"Processing {url}")
+    with rasterio.open(url) as src:
+        vrt_options = {
+            "crs": "EPSG:4326",  # WGS84
+            "resampling": Resampling.nearest
+        }
+        with WarpedVRT(src, **vrt_options) as vrt:
+            window = from_bounds(*bbox, vrt.transform)
+            data = vrt.read(1, window=window)
+            out_transform = vrt.window_transform(window)
+            meta = vrt.meta.copy()
+            meta.update({
+                "height": data.shape[0],
+                "width": data.shape[1],
+                "transform": out_transform,
+                "crs": "EPSG:4326"
+            })
+            band_name = f"{var}_c{timeID}_m{month}" if var in MONTHLY_VARS else f"{var}_c{timeID}"
+            return data, band_name, meta
 
-    for url, var, month, timeID in urls_info:
-        print(f"Processing {url}")
-        with rasterio.open(url) as src:
-            vrt_options = {
-                "crs": "EPSG:4326",  # WGS84
-                "resampling": Resampling.nearest
-            }
-            with WarpedVRT(src, **vrt_options) as vrt:
-                window = from_bounds(*bbox, vrt.transform)
-                data = vrt.read(1, window=window)
-                out_transform = vrt.window_transform(window)
-                if out_meta is None:
-                    out_meta = vrt.meta.copy()
-                    out_meta.update({
-                        "height": data.shape[0],
-                        "width": data.shape[1],
-                        "transform": out_transform,
-                        "crs": "EPSG:4326"
-                    })
-                bands.append(data)
-                # Band name logic
-                if var in MONTHLY_VARS:
-                    band_names.append(f"{var}_m{month}_c{timeID}")
-                else:
-                    band_names.append(f"{var}_c{timeID}")
+def extract_and_stack_geotiffs(urls_info, bbox, output_path, parallel=True):
+    if parallel:
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            results = list(executor.map(lambda info: process_single_geotiff(info, bbox), urls_info))
+    else:
+        results = [process_single_geotiff(info, bbox) for info in urls_info]
 
-    if not bands:
+    if not results:
         print("No bands to write.")
         return
 
+    bands, band_names, metas = zip(*results)
+    out_meta = metas[0]
     profile = out_meta.copy()
     profile.update({
         "count": len(bands),
@@ -94,30 +93,26 @@ def extract_and_stack_geotiffs(urls_info, bbox, output_path):
         "blockysize": 512
     })
 
-    with MemoryFile() as memfile:
-        with memfile.open(**profile) as dst:
-            for idx, band in enumerate(bands, start=1):
-                dst.write(band, idx)
-                dst.set_band_description(idx, band_names[idx-1])
-        rio_copy(memfile.name, output_path, driver='COG', compress='deflate', blocksize=512, overview_resampling='nearest')
-  
+
+with rasterio.open(output_path, 'w', **profile) as dst:
+    for idx, band in enumerate(tqdm(bands, desc="Writing bands to GeoTIFF", unit="band"), start=1):
+        dst.write(band, idx)
+        dst.set_band_description(idx, band_names[idx-1])
+
     print(f"Saved {output_path}")
 
 if __name__ == "__main__":
     # ----------------- USER-EDITABLE PARAMETERS -----------------
-    # Path to the CSV file containing URLs and parameters
-    URLS_CSV = "Python/holocene_climate/data/urls_to_query_bio12.csv"
-
+    URLS_CSV = "urls_to_query_bio12.csv"
     # Set the variable you want to extract (e.g. "pr", "tasmax", "bio18", "dem", etc.)
-    VARIABLE = "bio12"  # or None for all variables
-
+    VARIABLE = "bio12"
     # Set the month range if applicable (for monthly variables only)
     # Example: (1, 12) for all months, (6, 8) for June to August, or None for all
-    MONTH_RANGE = (1, 2) if VARIABLE in MONTHLY_VARS else None  # or None for all
-
+    MONTH_RANGE = None
     # Set the timeID range (for all variables)
     # Example: (-200, 20) for all, or (19, 20) for a small test
-    TIMEID_RANGE = None#(19, 20)  # or None for all
+    TIMEID_RANGE = None
+    PARALLEL = True
     # ------------------------------------------------------------
 
     # Read URLs and parameters from CSV
@@ -144,6 +139,5 @@ if __name__ == "__main__":
     BBOX = (MIN_LON, MIN_LAT, MAX_LON, MAX_LAT)
 
     now = datetime.datetime.now().strftime("%Y%m%dT%H%M%S")
-    output_path = f"Python/holocene_climate/data/CHELSA_TraCE21k_UK_V1.0_{VARIABLE}_{now}.tif"
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    extract_and_stack_geotiffs(urls_info, BBOX, output_path)
+    output_path = f"CHELSA_TraCE21k_UK_V1.0_{VARIABLE}_{now}.tif"
+    extract_and_stack_geotiffs(urls_info, BBOX, output_path, parallel=PARALLEL)
