@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 import os
+import subprocess
 import datetime
 import rasterio
 from rasterio.vrt import WarpedVRT
@@ -8,12 +9,39 @@ from rasterio.enums import Resampling
 import csv
 from tqdm import tqdm
 
+
 # Set PROJ_LIB (for systems where it's needed)
 try:
     import pyproj
     os.environ["PROJ_LIB"] = pyproj.datadir.get_data_dir()
 except ImportError:
     pass
+
+# automated checks for gdal settings 
+def check_gdal_settings():
+    print("\n--- GDAL Environment Check ---")
+    # GDAL version
+    try:
+        gdal_version = subprocess.check_output(["gdalinfo", "--version"], text=True).strip()
+        print(f"GDAL version: {gdal_version}")
+    except Exception as e:
+        print(f"Could not determine GDAL version: {e}")
+
+    # Environment variables
+    gdal_ca_bundle = os.environ.get("GDAL_CURL_CA_BUNDLE")
+    curl_ca_bundle = os.environ.get("CURL_CA_BUNDLE")
+    gdal_unsafe_ssl = os.environ.get("GDAL_HTTP_UNSAFESSL")
+
+    print(f"GDAL_CURL_CA_BUNDLE: {gdal_ca_bundle or 'Not set'}")
+    print(f"CURL_CA_BUNDLE: {curl_ca_bundle or 'Not set'}")
+    print(f"GDAL_HTTP_UNSAFESSL: {gdal_unsafe_ssl or 'Not set'}")
+
+    if not gdal_ca_bundle and not curl_ca_bundle:
+        print("⚠️ Warning: No CA bundle path set. SSL errors may occur with self-signed certificates.")
+    print("--- End GDAL Environment Check ---\n")
+
+check_gdal_settings()
+
 
 # Variables that have a 'month' component in their filename
 MONTHLY_VARS = {"pr", "tasmax", "tasmin"}
@@ -103,15 +131,15 @@ def extract_and_stack_geotiffs(urls_info, bbox, output_path, parallel=True):
 
 if __name__ == "__main__":
     # ----------------- USER-EDITABLE PARAMETERS -----------------
-    URLS_CSV = "Python/holocene_climate/data/urls_to_query_bio06.csv"
+    URLS_CSV = "Python/holocene_climate/data/urls_to_query_bio12.csv"
     # Set the variable you want to extract (e.g. "pr", "tasmax", "bio18", "dem", etc.)
-    VARIABLE = "bio06"
+    VARIABLE = "bio12"
     # Set the month range if applicable (for monthly variables only)
     # Example: (1, 12) for all months, (6, 8) for June to August, or None for all
     MONTH_RANGE = None
     # Set the timeID range (for all variables)
     # Example: (-200, 20) for all, or (19, 20) for a small test
-    TIMEID_RANGE = None
+    TIMEID_RANGE = (-80, -70)#None
     PARALLEL = True
     # ------------------------------------------------------------
 
