@@ -114,7 +114,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+holocene/
 # Spyder project settings
 .spyderproject
 .spyproject

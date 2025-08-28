@@ -2,10 +2,12 @@ import csv
 
 # Variables that have a 'month' component in their filename and URL
 MONTHLY_VARS = {"pr", "tasmax", "tasmin"}
+BIO_VARS = {"bio01", "bio02", "bio03", "bio04", "bio05", "bio06", "bio07", "bio08", "bio0", "bio10", 
+            "bio11", "bio12", "bio13", "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"}
 
 # Map for non-monthly variables to their subfolder (bio, dem, scd, glz, etc.)
 NON_MONTHLY_SUBFOLDER = {
-    **{f"bio{str(i).zfill(2)}": "bio" for i in range(1, 19)},
+    #**{f"bio{str(i).zfill(2)}": "bio" for i in range(1, 19)},
     "dem": "dem",
     "scd": "scd",
     "glz": "glz"
@@ -30,6 +32,11 @@ def generate_urls_to_query_csv(
                 for timeID in timeIDs:
                     url = f"{base_url}{month}_{timeID}_V1.0.tif"
                     writer.writerow([variable, month, timeID, url])
+        elif variable in BIO_VARS:
+            base_url = f"https://os.zhdk.cloud.switch.ch/chelsav1/chelsa_trace/bio/CHELSA_TraCE21k_{variable}_"
+            for timeID in timeIDs:
+                url = f"{base_url}{timeID}_V1.0.tif"
+                writer.writerow([variable, "", timeID, url])        
         else:
             # Determine subfolder for non-monthly variable
             subfolder = NON_MONTHLY_SUBFOLDER.get(variable, variable)
@@ -41,7 +48,8 @@ def generate_urls_to_query_csv(
 
 if __name__ == "__main__":
     # Example usage: generate for pr, tasmax, bio18, dem, glz
-    variables = ["bio12", "bio5", "bio6"]#["pr", "tasmax", "bio18", "dem", "glz"]
+    variables = ["bio01", "bio02", "bio03", "bio04", "bio05", "bio06", "bio07", "bio08", "bio0", "bio10", 
+            "bio11", "bio12", "bio13", "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"]#["pr", "tasmax", "bio18", "dem", "glz"]
     for var in variables:
         if var in MONTHLY_VARS:
             generate_urls_to_query_csv(
