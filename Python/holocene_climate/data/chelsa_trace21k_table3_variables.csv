@@ -1,0 +1,30 @@
+﻿varname ,shortname ,Longname ,Units ,Description 
+tasmax,tasmax,Daily Minimum Near-Surface Air Temperature,K/10,maximum near-surface (2 meter) air temperature
+tasmin,tasmin,Daily Maximum Near-Surface Air Temperature,K/10,minimum near-surface (2 meter) air temperature
+pr,pr,Precipitation,kg m-2 month-1,precipitation flux (includes both liquid and solid phases)
+scd,scd,Snow cover days,Count,Average number of days with snow cover per year
+swe,swe,Snow water equivalent,kg m-2 year-1,Number of dry periods of more than 5 days
+bio1,Annual Mean Temperature,Annual Mean Temperature,C,Mean of monthly (tasmax+tasmin)/2
+bio2,Mean Diurnal Range,Mean Diurnal Range,C,tasmax – tasmin. The annual mean of all the monthly diurnal temperature ranges. Each monthly diurnal range is the difference between that month's maximum and minimum temperature
+bio3,Isothermality,Isothermality,unitless,The mean diurnal range (bio2) divided by the annual temperature range (bio7).
+,,,,
+bio4,Temperature Seasonality,Temperature Seasonality,C,The standard deviation of the monthly mean temperatures.
+bio5,Max Temperature of Warmest Month,Max Temperature of Warmest Month,C,The highest temperature of any monthly maximum temperature.
+bio6,Min Temperature of Coldest Month,Min Temperature of Coldest Month,C,The lowest temperature of any monthly minimum temperature.
+bio7,Temperature Annual Range,Temperature Annual Range,C,The difference between the Maximum Temperature of Warmest Period and the Minimum Temperature of Coldest Period.
+bio8,Mean Temperature of Wettest Quarter,Mean Temperature of Wettest Quarter,C,"The wettest quarter of the year is determined (to the nearest month), and the mean temperature of this period is calculated."
+bio9,Mean Temperature of Driest Quarter,Mean Temperature of Driest Quarter,C,"The driest quarter of the year is determined (to the nearest month), and the mean temperature of this period is calculated."
+bio10,Mean Temperature of Warmest Quarter,Mean Temperature of Warmest Quarter,C,"The warmest quarter of the year is determined (to the nearest month), and the mean temperature of this period is calculated."
+bio11,Mean Temperature of Coldest Quarter,Mean Temperature of Coldest Quarter,C,"The coldest quarter of the year is determined (to the nearest month), and the mean temperature of this period is calculated."
+,,,, 
+bio12,Annual Precipitation,Annual Precipitation,kg m-2 year-1,The sum of all the monthly precipitation estimates.
+bio13,Precipitation of Wettest Month,Precipitation of Wettest Month,kg m-2 month-1,The precipitation of the wettest month.
+bio14,Precipitation of Driest Month,Precipitation of Driest Month,kg m-2 month-1,The precipitation of the driest month.
+bio15,Precipitation Seasonality,Precipitation Seasonality,Unitless,The Coefficient of Variation is the standard deviation of the monthly precipitation estimates expressed as a percentage of the mean of those estimates (i.e. the annual mean).
+bio16,Precipitation of Wettest Quarter,Precipitation of Wettest Quarter,kg m-2 quarter-1,"The wettest quarter of the year is determined (to the nearest month), and the total precipitation over this period is calculated."
+bio17,Precipitation of Driest Quarter,Precipitation of Driest Quarter,kg m-2 quarter-1,"The driest quarter of the year is determined (to the nearest month), and the total precipitation over this period is calculated."
+bio18,Precipitation of Warmest Quarter,Precipitation of Warmest Quarter,kg m-2 quarter-1,"The warmest quarter of the year is determined (to the nearest month), and the total precipitation over this period is calculated."
+bio19,Precipitation of Coldest Quarter,Precipitation of Coldest Quarter,kg m-2 quarter-1,"The coldest quarter of the year is determined (to the nearest month), and the total precipitation over this period is calculated."
+dem,elevation,elevation,m,Surface elevation above sea level.
+glz,glacier elevation,glacier elevation,m,Surface elevation of the glaciers above sea level.
+tz,air-temperature lapse rate,air-temperature lapse rate,K/m,The atmospheric temperature lapse rate as Kelvin per meter. Negative values indicate a decrease in K with altitude.
